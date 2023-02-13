@@ -1,0 +1,15 @@
+El objetivo es obtener estadisticas sobre los juegos y los comentarios sobre videojuegos.
+Estadisticas sobre en que redes sociales se habla mas de un determinado tema
+Tenemos varios ficheros:
+- PlayStroreGame.com con comentarios reales sobre difentes videojuegos
+- Metacritic games
+
+Hay que extraer estos datos y meterlos a la base de datos
+
+Habra que hacer una busqueda a traves de web scrapping de diferentes paginas. Por ejemplo, amazon
+Se puede hacer de uno solo, no hace falta realizarlo de varios, o de muchos
+Se anadira a la base de datos
+
+En el origen de la informacion sera la red social. Si no es una red social, en la red social se pondra que 
+el nombre es de la web desde la que se ha extraido
+
