@@ -2,9 +2,12 @@ from django.db import models
 from django.utils import timezone
 
 # Create your models here.
+class Plataforma(models.Model):
+    nombre = models.CharField(max_length=100)
+
 class Juego(models.Model):
     tit_juego = models.CharField(max_length=120)
-    plataforma = models.CharField(max_length=100)
+    plataforma = models.ForeignKey(Plataforma, on_delete=models.CASCADE)
     f_publicacion = models.IntegerField()
     
 class Red_social(models.Model):

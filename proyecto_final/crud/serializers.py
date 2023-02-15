@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from . import models
 
+class PlataformaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Plataforma
+        fields = '__all__'
+
 class JuegoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Juego

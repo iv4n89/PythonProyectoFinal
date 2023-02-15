@@ -4,10 +4,11 @@ from . import views
 urlpatterns = [
     path('juegos/', views.JuegoViewSet.as_view({'get': 'list'})),
     path('juegos/create', views.JuegoViewSet.as_view({'post': 'create'})),
+    path('juegos/seed', views.JuegoViewSet.as_view({ 'options': 'seed_data_base' })),
     re_path(r'^juegos/(?P<pk>[0-9]+)/$', views.JuegoViewSet.as_view({
         'get': 'retrieve',
         'put': 'partial_update',
-        'delete': 'destroy'
+        'delete': 'destroy',
     })),
     path('red-social/', views.RedSocialViewSet.as_view({'get': 'list'})),
     path('red-social/create', views.RedSocialViewSet.as_view({'post': 'create'})),
