@@ -1,10 +1,13 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
+import itertools
 import csv
 from . import models
 from . import serializers
 import os
 from django.conf import settings
+from django.db.models import Q
+from django.utils import timezone
 
 STATUS = {
     'OK': 200,
@@ -224,3 +227,39 @@ class MensajeViewSet(BaseViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
+    
+    def seed_metacritic_mensajes_data(self, request):
+        self.model_class.objects.all().delete()
+        
+        with open(os.path.join(settings.BASE_DIR, 'datos', 'metacritic_game_user_comments.csv'), 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            mensajes = []
+            
+            for row in itertools.islice(reader, 1000):
+                usuario, _ = models.Usuario.objects.filter(
+                    Q(nombre=row['Username']) | Q(nick=row['Username'])
+                ).get_or_create(nombre=row['Username'], nick=row['Username'], email=row['Username'] + '@mail.com')
+                
+                red_social, _ = models.Red_social.objects.filter(
+                        Q(nombre="Metacritic") | Q(url='metacritic.com') 
+                    ).get_or_create(nombre="Metacritic", url="metacritic.com")
+                
+                juego, _ = models.Juego.objects.filter(
+                    Q(titulo=row['Title']) | Q(id_plataforma=models.Plataforma.objects.get_or_create(nombre=row['Platform'])[0])
+                ).get_or_create(
+                    titulo=row['Title'], 
+                    id_plataforma=models.Plataforma.objects.get_or_create(nombre=row['Platform'])[0]
+                )
+                    
+                mensaje = models.Mensaje(
+                    f_mensaje='1970-01-01',
+                    texto=row['Comment'],
+                    id_juego=juego,
+                    id_usuario=usuario,
+                    id_red_social=red_social
+                )
+                mensajes.append(mensaje)
+                
+        self.model_class.objects.bulk_create(mensajes)
+        
+        return Response('Los mensajes se crearon correctamente en la base de datos')
