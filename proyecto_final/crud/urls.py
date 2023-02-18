@@ -25,7 +25,8 @@ urlpatterns = [
         'delete': 'destroy'
     })),
     path('mensaje/', views.MensajeViewSet.as_view({'get': 'list'})),
-    path('mensaje/seed/metacritic', views.MensajeViewSet.as_view({ 'options': 'seed_metacritic_mensajes_data' })),
+    path('mensaje/seed/metacritic', views.MensajeViewSet.as_view({ 'post': 'seed_metacritic_mensajes_data' })),
+    path('mensaje/seed/playstoregames', views.MensajeViewSet.as_view({ 'options': 'seed_play_store_game_data' })),
     path('mensaje/create', views.MensajeViewSet.as_view({'post': 'create'})),
     re_path(r'^mensaje/(?P<pk>[0-9]+)/$', views.MensajeViewSet.as_view({
         'get': 'retrieve',

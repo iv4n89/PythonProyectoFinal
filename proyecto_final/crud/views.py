@@ -2,12 +2,15 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 import itertools
 import csv
+import json
 from . import models
 from . import serializers
+from . import forms
 import os
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
+import random
 
 STATUS = {
     'OK': 200,
@@ -229,20 +232,34 @@ class MensajeViewSet(BaseViewSet):
         return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
     
     def seed_metacritic_mensajes_data(self, request):
-        self.model_class.objects.all().delete()
+        METACRITIC_DATA = {
+            'name': 'Metacritic',
+            'url': 'metacritic.com'
+        }
+        # self.model_class.objects.all().delete()
+        form = forms.BuscarMensaje(request.POST or None)
+
+        if form.is_valid():
+            id_juego = form.cleaned_data['id_juego']
+            
+        juego = models.Juego.objects.get(pk=id_juego)
+        metacritic_red_social = models.Red_social.objects.filter(
+            Q(nombre=METACRITIC_DATA['name']) | Q(url=METACRITIC_DATA['url'])
+        ).get_or_create(nombre=METACRITIC_DATA['name'], url=METACRITIC_DATA['url'])
+            
+        self.model_class.objects.filter(id_juego=juego.id, id_red_social=metacritic_red_social.id).delete()
         
         with open(os.path.join(settings.BASE_DIR, 'datos', 'metacritic_game_user_comments.csv'), 'r') as csvfile:
             reader = csv.DictReader(csvfile)
             mensajes = []
             
-            for row in itertools.islice(reader, 1000):
+            for row in reader:
+                if row['Title'] != juego.titulo:
+                    continue
+                
                 usuario, _ = models.Usuario.objects.filter(
                     Q(nombre=row['Username']) | Q(nick=row['Username'])
                 ).get_or_create(nombre=row['Username'], nick=row['Username'], email=row['Username'] + '@mail.com')
-                
-                red_social, _ = models.Red_social.objects.filter(
-                        Q(nombre="Metacritic") | Q(url='metacritic.com') 
-                    ).get_or_create(nombre="Metacritic", url="metacritic.com")
                 
                 juego, _ = models.Juego.objects.filter(
                     Q(titulo=row['Title']) | Q(id_plataforma=models.Plataforma.objects.get_or_create(nombre=row['Platform'])[0])
@@ -256,10 +273,60 @@ class MensajeViewSet(BaseViewSet):
                     texto=row['Comment'],
                     id_juego=juego,
                     id_usuario=usuario,
-                    id_red_social=red_social
+                    id_red_social=metacritic_red_social
                 )
                 mensajes.append(mensaje)
                 
         self.model_class.objects.bulk_create(mensajes)
         
         return Response('Los mensajes se crearon correctamente en la base de datos')
+    
+    def seed_play_store_game_data(self, request):
+        PLAY_STORE_GAME = {
+            'name': 'play_store_games',
+            'url': 'playstore.com',
+            'platform': 'playstore'
+        }
+        
+        play_store_red_social, _ = models.Red_social.objects.filter(
+            Q(nombre=PLAY_STORE_GAME['name']) | Q(url=PLAY_STORE_GAME['url'])
+        ).get_or_create(nombre=PLAY_STORE_GAME['name'], url=PLAY_STORE_GAME['url'])
+        
+        play_store_platform, _ = models.Plataforma.objects.get_or_create(nombre=PLAY_STORE_GAME['platform'])
+        
+        models.Mensaje.objects.filter(id_red_social=play_store_red_social.id).delete()
+        
+        with open(os.path.join(settings.BASE_DIR, 'datos', 'PlayStoreGameAppInfoReview.json'), 'r') as jsonfile:
+            json_data = json.load(jsonfile)
+            juegos_selected = []
+            
+            for _ in range(10):
+                mensajes = []
+                juego_key, juego_value = random.choice(list(json_data.items()))
+                while juego_key in juegos_selected:
+                    juego_key, juego_value = random.choice(list(json_data.items()))
+                
+                juegos_selected.append(juego_key)
+                
+                for i in range(10):
+                    user_name = juego_value['reviews'][i]['userName']
+                    comment = juego_value['reviews'][i]['content']
+                    
+                    user, _ = models.Usuario.objects.filter(
+                        Q(nick=user_name) | Q(nombre=user_name)
+                    ).get_or_create(nick=user_name, nombre=user_name)
+                    
+                    juego, _ = models.Juego.objects.get_or_create(titulo=juego_value['appInfo']['title'], id_plataforma=play_store_platform)
+                    
+                    mensaje = models.Mensaje(
+                        f_mensaje='1970-01-01',
+                        texto=comment,
+                        id_usuario=user,
+                        id_juego=juego,
+                        id_red_social=play_store_red_social
+                    )
+                    mensajes.append(mensaje)
+                    
+                models.Mensaje.objects.bulk_create(mensajes)
+
+            return Response('Los mensajes han sido cargados correctamente')
