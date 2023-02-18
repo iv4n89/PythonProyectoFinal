@@ -25,3 +25,18 @@ class Mensaje(models.Model):
     id_juego = models.ForeignKey(Juego, on_delete=models.DO_NOTHING)
     id_usuario = models.ForeignKey(Usuario, on_delete=models.DO_NOTHING)
     id_red_social = models.ForeignKey(Red_social, on_delete=models.DO_NOTHING)
+    
+    @staticmethod
+    def factory(texto: str, id_juego: Juego, id_usuario: Usuario, id_red_social: Red_social, f_mensaje: str = ''):
+        if f_mensaje == '':
+            f_mensaje = timezone.now().strftime('%Y-%m-%d')
+        
+        mensaje = Mensaje(
+            f_mensaje=f_mensaje,
+            texto=texto,
+            id_juego=id_juego,
+            id_usuario=id_usuario,
+            id_red_social=id_red_social
+        )
+        
+        return mensaje

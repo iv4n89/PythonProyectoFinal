@@ -21,15 +21,24 @@ STATUS = {
 }
 
 class BaseViewSet(viewsets.ViewSet):
-    serializer_class = None
-    model_class = None
+    '''
+    Clase generica base para todos los CRUD en cada uno de los modelos.
+    '''
+    serializer_class = None #Clase serializadora para la actual vista generica
+    model_class = None #Clase de modelo para la actual vista generica
 
     def list(self, request):
+        '''
+        Selecciona todos los elementos del modelo actual desde la base de datos, y los ofrece al usuario
+        '''
         queryset = self.model_class.objects.all()
         serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
 
     def create(self, request):
+        '''
+        Crea un elemento del modelo en la base de datos
+        '''
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -37,11 +46,17 @@ class BaseViewSet(viewsets.ViewSet):
         return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
 
     def retrieve(self, request, pk=None):
+        '''
+        Selecciona un unico elemento, por PK, del modelo desde la base de datos
+        '''
         queryset = self.model_class.objects.get(pk=pk)
         serializer = self.serializer_class(queryset)
         return Response(serializer.data)
 
     def partial_update(self, request, pk=None):
+        '''
+        Parcialmente actualiza un modelo en la base de datos
+        '''
         queryset = self.model_class.objects.get(pk=pk)
         serializer = self.serializer_class(
             queryset, data=request.data, partial=True)
@@ -51,19 +66,31 @@ class BaseViewSet(viewsets.ViewSet):
         return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
 
     def destroy(self, request, pk=None):
+        '''
+        Elimina un elemento en la base de datos, por PK
+        '''
         queryset = self.model_class.objects.get(pk=pk)
         queryset.delete()
         return Response(status=STATUS['NO_CONTENT'])
 
 class PlataformaViewSet(BaseViewSet):
+    '''
+    Vistas para formar el CRUD para el modelo Plataforma
+    '''
     model_class = models.Plataforma
     serializer_class = serializers.PlataformaSerializer
 
 class JuegoViewSet(BaseViewSet):
+    '''
+    Vistas para formar el CRUD para el modelo Juego
+    '''
     model_class = models.Juego
     serializer_class = serializers.JuegoSerializer
     
     def create(self, request):
+        '''
+        Sobre escritura del metodo create. Se introduce la posibilidad de enviar la plataforma como un numero (FK), un str o un dict (en los dos ulimos casos se buscara o creara si no existe)
+        '''
         data = request.data
         if not isinstance(data['id_plataforma'], int):
             if isinstance(data['id_plataforma'], str):
@@ -81,6 +108,9 @@ class JuegoViewSet(BaseViewSet):
         return Response(serializer.error_messages, status=STATUS['BAD_REQUEST'])
     
     def partial_update(self, request, pk=None):
+        '''
+        Sobre escritura del metodo partial_update. Se introduce la posibilidad de enviar la plataforma como un int (FK), un str o un dict (en los dos ultimos casos se buscara o creara si no existe)
+        '''
         queryset = self.model_class.objects.get(pk=pk)
         data = request.data
         
@@ -101,6 +131,10 @@ class JuegoViewSet(BaseViewSet):
         
 
     def seed_data_base(self, request):
+        '''
+        Metodo para poblar la base de datos desde fichero csv provisto con el proyecto.
+        Esto elimina todos los registros de la tabla Juegos antes de realizar el poblado de nuevo para la tabla
+        '''
         self.model_class.objects.all().delete()
 
         with open(os.path.join(settings.BASE_DIR, 'datos', 'metacritic_game_info.csv'), 'r') as csvfile:
@@ -126,20 +160,32 @@ class JuegoViewSet(BaseViewSet):
 
 
 class RedSocialViewSet(BaseViewSet):
+    '''
+    Vistas para formar el CRUD del modelo Red Social
+    '''
     model_class = models.Red_social
     serializer_class = serializers.RedSocialSerializer
 
 
 class UsuarioViewSet(BaseViewSet):
+    '''
+    Vistas para formar el CRUD del modelo Usuario
+    '''
     model_class = models.Usuario
     serializer_class = serializers.UsuarioSerializer
 
 
 class MensajeViewSet(BaseViewSet):
+    '''
+    Vistas para formar el CRUD del modelo Mensaje
+    '''
     model_class = models.Mensaje
     serializer_class = serializers.MensajeSerializer
     
     def create(self, request):
+        '''
+        Sobre escritura del metodo create. Se introduce la posibilidad de enviar red social, juego y usuario como int (FK), str o dict. En el caso de red social, si no existe se creara
+        '''
         data = request.data
         
         #red social
@@ -185,7 +231,11 @@ class MensajeViewSet(BaseViewSet):
         
         return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
     
+    
     def partial_update(self, request, pk=None):
+        '''
+        Sobre escritura para el metodo partial_update. Se introduce la posibilidad de enviar red social, juego y usuario como int (FK), str o dict. En el caso de red social, si no existe se creara
+        '''
         queryset = self.model_class.objects.get(pk=pk)
         data = request.data
         
@@ -232,6 +282,10 @@ class MensajeViewSet(BaseViewSet):
         return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
     
     def seed_metacritic_mensajes_data(self, request):
+        '''
+        Metodo de poblacion de base de datos para la tabla mensajes, usando de base el fichero csv facilitado con el proyecto
+        Este tomara el juego que se envia desde el request y buscara todos los mensajes y reviews enviados por usuarios, los cuales seran introducidos a la base de datos
+        '''
         METACRITIC_DATA = {
             'name': 'Metacritic',
             'url': 'metacritic.com'
@@ -268,8 +322,7 @@ class MensajeViewSet(BaseViewSet):
                     id_plataforma=models.Plataforma.objects.get_or_create(nombre=row['Platform'])[0]
                 )
                     
-                mensaje = models.Mensaje(
-                    f_mensaje='1970-01-01',
+                mensaje = models.Mensaje.factory(
                     texto=row['Comment'],
                     id_juego=juego,
                     id_usuario=usuario,
@@ -282,6 +335,11 @@ class MensajeViewSet(BaseViewSet):
         return Response('Los mensajes se crearon correctamente en la base de datos')
     
     def seed_play_store_game_data(self, request):
+        '''
+        Metodo de poblacion de la tabla mensajes, usando de base el fichero json que se facilita con el proyecto.
+        Este seleccionara 10 juegos aleatorios de entre todos los disponibles, recogiendo todos los mensajes enviados por los usuarios para todos los 10 juegos seleccionados e introduciendo sus datos a la base de datos.
+        Antes de la seleccion y posterior introduccions de datos a la base de datos, se borraran todos los mensajes que hayan sido registrados para la red social de playstore
+        '''
         PLAY_STORE_GAME = {
             'name': 'play_store_games',
             'url': 'playstore.com',
@@ -318,8 +376,7 @@ class MensajeViewSet(BaseViewSet):
                     
                     juego, _ = models.Juego.objects.get_or_create(titulo=juego_value['appInfo']['title'], id_plataforma=play_store_platform)
                     
-                    mensaje = models.Mensaje(
-                        f_mensaje='1970-01-01',
+                    mensaje = models.Mensaje.factory(
                         texto=comment,
                         id_usuario=user,
                         id_juego=juego,
