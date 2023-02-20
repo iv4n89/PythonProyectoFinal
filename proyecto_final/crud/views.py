@@ -1,16 +1,15 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
-import itertools
-import csv
-import json
-from . import models
-from . import serializers
-from . import forms
-import os
 from django.conf import settings
 from django.db.models import Q
-from django.utils import timezone
+import csv
+import json
+import os
 import random
+from . import forms
+from . import models
+from . import serializers
+
 
 STATUS = {
     'OK': 200,
@@ -79,6 +78,14 @@ class PlataformaViewSet(BaseViewSet):
     '''
     model_class = models.Plataforma
     serializer_class = serializers.PlataformaSerializer
+    
+    def search(self, request):
+        plataforma = self.model_class.objects.filter(
+            Q(nombre=request.data['nombre'])
+        )
+        serialized = self.serializer_class(plataforma, many=True)
+        return Response(serialized)
+        
 
 class JuegoViewSet(BaseViewSet):
     '''
@@ -86,6 +93,26 @@ class JuegoViewSet(BaseViewSet):
     '''
     model_class = models.Juego
     serializer_class = serializers.JuegoSerializer
+    
+    def search(self, request):
+        filters = Q()
+        if 'titulo' in request.data:
+            filters &= Q(titulo__contains=request.data['titulo'])
+        if 'f_publicacion' in request.data:
+            filters &= Q(f_publicacion=request.data['f_publicacion'])
+        if 'id_plataforma' in request.data:
+            if not isinstance(request.data['id_plataforma'], int):
+                if isinstance(request.data['id_plataforma'], str):
+                    plataforma = models.Plataforma.objects.get(nombre=request.data['id_plataforma'])
+                    filters &= Q(id_plataforma=plataforma.id)
+                if isinstance(request.data['id_plataforma'], dict):
+                    plataforma = models.Plataforma.objects.get(**request.data['id_plataforma'])
+                    filters &= Q(id_plataforma=plataforma.id)
+            else:
+                filters &= Q(id_plataforma=request.data['id_plataforma'])
+        juegos = self.model_class.objects.filter(filters)
+        serialized = self.serializer_class(juegos, many=True)
+        return Response(serialized.data)
     
     def create(self, request):
         '''
@@ -97,7 +124,7 @@ class JuegoViewSet(BaseViewSet):
                 plataforma, created = models.Plataforma.objects.get_or_create(nombre=data['id_plataforma'])
                 data['id_plataforma'] = plataforma.id
             if isinstance(data['id_plataforma'], dict):
-                plataforma, crated = models.Plataforma.objects.get_or_create(nombre=data['id_plataforma']['nombre'])
+                plataforma, created = models.Plataforma.objects.get_or_create(nombre=data['id_plataforma']['nombre'])
                 data['id_plataforma'] = plataforma.id
                 
         serializer = self.serializer_class(data=data)
@@ -165,6 +192,16 @@ class RedSocialViewSet(BaseViewSet):
     '''
     model_class = models.Red_social
     serializer_class = serializers.RedSocialSerializer
+    
+    def search(self, request):
+        filters = Q()
+        if 'nombre' in request.data:
+            filters &= Q(nombre__contains=request.data['nombre'])
+        if 'url' in request.data:
+            filters &= Q(url=request.data['url'])
+        red_social = self.model_class.objects.filter(filters)
+        serialized = self.serializer_class(red_social, many=True)
+        return Response(serialized.data)
 
 
 class UsuarioViewSet(BaseViewSet):
@@ -173,6 +210,18 @@ class UsuarioViewSet(BaseViewSet):
     '''
     model_class = models.Usuario
     serializer_class = serializers.UsuarioSerializer
+    
+    def search(self, request):
+        filters = Q()
+        if 'nombre' in request.data:
+            filters &= Q(nombre__contains=request.data['nombre'])
+        if 'nick' in request.data:
+            filters &= Q(nick__contains=request.data['nick'])
+        if 'email' in request.data:
+            filters &= Q(email__contains=request.data['email'])
+        usuarios = self.model_class.objects.filter(filters)
+        serialized = self.serializer_class(usuarios, many=True)
+        return Response(serialized.data)
 
 
 class MensajeViewSet(BaseViewSet):
@@ -181,6 +230,44 @@ class MensajeViewSet(BaseViewSet):
     '''
     model_class = models.Mensaje
     serializer_class = serializers.MensajeSerializer
+    
+    def search(self, request):
+        filters = Q()
+        if 'f_mensaje' in request.data:
+            filters &= Q(f_mensaje=request.data['f_mensaje'])
+        if 'id_usuario' in request.data:
+            if not isinstance(request.data['id_usuario'], int):
+                if isinstance(request.data['id_usuario'], str):
+                    usuario = models.Usuario.objects.get(nick=request.data['id_usuario'])
+                    filters &= Q(id_usuario=usuario.id)
+                if isinstance(request.data['id_usuario'], dict):
+                    usuario = models.Usuario.objects.get(**request.data['id_usuario'])
+                    filters &= Q(id_usuario=usuario.id)
+            else:
+                filters &= Q(id_usuario=request.data['id_usuario'])
+        if 'id_red_social' in request.data:
+            if not isinstance(request.data['id_red_social'], int):
+                if isinstance(request.data['id_red_social'], str):
+                    red_social = models.Red_social.objects.get(nombre=request.data['id_red_social'])
+                    filters &= Q(id_red_social=red_social.id)
+                if isinstance(request.data['id_red_social'], dict):
+                    red_social = models.Red_social.objects.get(**request.data['id_red_social'])
+                    filters &= Q(id_red_social=red_social.id)
+            else:
+                filters &= Q(id_red_social=request.data['id_red_social'])
+        if 'id_juego' in request.data:
+            if not isinstance(request.data['id_juego'], int):
+                if isinstance(request.data['id_juego'], str):
+                    juego = models.Juego.objects.get(titulo=request.data['id_juego'])
+                    filters &= Q(id_juego=juego.id)
+                if isinstance(request.data['id_juego'], dict):
+                    juego = models.Juego.objects.get(**request.data['id_juego'])
+                    filters &= Q(id_juego=juego.id)
+            else:
+                filters &= Q(id_juego=request.data['id_juego'])
+        mensajes = self.model_class.objects.filter(filters)
+        serialized = self.serializer_class(mensajes, many=True)
+        return Response(serialized.data)
     
     def create(self, request):
         '''
