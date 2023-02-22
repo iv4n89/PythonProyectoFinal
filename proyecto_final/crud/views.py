@@ -1,14 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
-from django.conf import settings
-from django.db.models import Q
-import csv
-import json
-import os
-import random
-from . import forms
-from . import models
-from . import serializers
+from . import repositories
 
 
 STATUS = {
@@ -23,403 +15,107 @@ class BaseViewSet(viewsets.ViewSet):
     '''
     Clase generica base para todos los CRUD en cada uno de los modelos.
     '''
-    serializer_class = None #Clase serializadora para la actual vista generica
-    model_class = None #Clase de modelo para la actual vista generica
+    repository = None
 
     def list(self, request):
         '''
         Selecciona todos los elementos del modelo actual desde la base de datos, y los ofrece al usuario
         '''
-        queryset = self.model_class.objects.all()
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data)
+        data = self.repository.list(request.data)
+        return Response(data)
 
     def create(self, request):
         '''
         Crea un elemento del modelo en la base de datos
         '''
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=STATUS['CREATED'])
-        return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
+        errors, data = self.repository.create(request.data)
+        print(data)
+        if errors:
+            return Response(data, status=STATUS['BAD_REQUEST'])
+        return Response(data, status=STATUS['CREATED'])
 
     def retrieve(self, request, pk=None):
         '''
         Selecciona un unico elemento, por PK, del modelo desde la base de datos
         '''
-        queryset = self.model_class.objects.get(pk=pk)
-        serializer = self.serializer_class(queryset)
-        return Response(serializer.data)
+        data = self.repository.retrieve(request.data, pk)
+        return Response(data)
 
     def partial_update(self, request, pk=None):
         '''
         Parcialmente actualiza un modelo en la base de datos
         '''
-        queryset = self.model_class.objects.get(pk=pk)
-        serializer = self.serializer_class(
-            queryset, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
+        errors, data = self.repository.partial_update(request.data, pk)
+        if errors:
+            return Response(data, status=STATUS['BAD_REQUEST'])
+        return Response(data, status=STATUS['OK'])
+    
+    def search(self, request):
+        data = self.repository.search(request.data)
+        return Response(data)
 
     def destroy(self, request, pk=None):
         '''
         Elimina un elemento en la base de datos, por PK
         '''
-        queryset = self.model_class.objects.get(pk=pk)
-        queryset.delete()
+        self.repository.destroy(request.data, pk)
         return Response(status=STATUS['NO_CONTENT'])
 
 class PlataformaViewSet(BaseViewSet):
     '''
     Vistas para formar el CRUD para el modelo Plataforma
     '''
-    model_class = models.Plataforma
-    serializer_class = serializers.PlataformaSerializer
-    
-    def search(self, request):
-        plataforma = self.model_class.objects.filter(
-            Q(nombre=request.data['nombre'])
-        )
-        serialized = self.serializer_class(plataforma, many=True)
-        return Response(serialized)
+    repository = repositories.PlataformaRepository()
         
 
 class JuegoViewSet(BaseViewSet):
     '''
     Vistas para formar el CRUD para el modelo Juego
     '''
-    model_class = models.Juego
-    serializer_class = serializers.JuegoSerializer
-    
-    def search(self, request):
-        filters = Q()
-        if 'titulo' in request.data:
-            filters &= Q(titulo__contains=request.data['titulo'])
-        if 'f_publicacion' in request.data:
-            filters &= Q(f_publicacion=request.data['f_publicacion'])
-        if 'id_plataforma' in request.data:
-            if not isinstance(request.data['id_plataforma'], int):
-                if isinstance(request.data['id_plataforma'], str):
-                    plataforma = models.Plataforma.objects.get(nombre=request.data['id_plataforma'])
-                    filters &= Q(id_plataforma=plataforma.id)
-                if isinstance(request.data['id_plataforma'], dict):
-                    plataforma = models.Plataforma.objects.get(**request.data['id_plataforma'])
-                    filters &= Q(id_plataforma=plataforma.id)
-            else:
-                filters &= Q(id_plataforma=request.data['id_plataforma'])
-        juegos = self.model_class.objects.filter(filters)
-        serialized = self.serializer_class(juegos, many=True)
-        return Response(serialized.data)
-    
-    def create(self, request):
-        '''
-        Sobre escritura del metodo create. Se introduce la posibilidad de enviar la plataforma como un numero (FK), un str o un dict (en los dos ulimos casos se buscara o creara si no existe)
-        '''
-        data = request.data
-        if not isinstance(data['id_plataforma'], int):
-            if isinstance(data['id_plataforma'], str):
-                plataforma, created = models.Plataforma.objects.get_or_create(nombre=data['id_plataforma'])
-                data['id_plataforma'] = plataforma.id
-            if isinstance(data['id_plataforma'], dict):
-                plataforma, created = models.Plataforma.objects.get_or_create(nombre=data['id_plataforma']['nombre'])
-                data['id_plataforma'] = plataforma.id
-                
-        serializer = self.serializer_class(data=data)
+    repository = repositories.JuegoRepository()
         
-        if serializer.is_valid():
-            return Response(serializer.data)
-        
-        return Response(serializer.error_messages, status=STATUS['BAD_REQUEST'])
-    
-    def partial_update(self, request, pk=None):
-        '''
-        Sobre escritura del metodo partial_update. Se introduce la posibilidad de enviar la plataforma como un int (FK), un str o un dict (en los dos ultimos casos se buscara o creara si no existe)
-        '''
-        queryset = self.model_class.objects.get(pk=pk)
-        data = request.data
-        
-        if 'id_plataforma' in data and not isinstance(data['id_plataforma'], int):
-            if isinstance(data['id_plataforma'], str):
-                plataforma, created = models.Plataforma.objects.get_or_create(nombre=data['id_plataforma'])
-                data['id_plataforma'] = plataforma.id
-            if isinstance(data['id_plataforma'], dict):
-                plataforma, crated = models.Plataforma.objects.get_or_create(nombre=data['id_plataforma']['nombre'])
-                data['id_plataforma'] = plataforma.id
-                
-        serializer = self.serializer_class(
-            queryset, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
-        
-
     def seed_data_base(self, request):
         '''
         Metodo para poblar la base de datos desde fichero csv provisto con el proyecto.
         Esto elimina todos los registros de la tabla Juegos antes de realizar el poblado de nuevo para la tabla
         '''
-        self.model_class.objects.all().delete()
+        result = self.repository.seed_data_base(request.data)
 
-        with open(os.path.join(settings.BASE_DIR, 'datos', 'metacritic_game_info.csv'), 'r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            juegos = []
-            for row in reader:
-                    
-                if row['Title'] == 'Bad request' or row['Platform'] == 'not specified':
-                    continue
-                
-                plataforma, created = models.Plataforma.objects.get_or_create(nombre=row['Platform'])
-                
-                juego = models.Juego(
-                    titulo=row['Title'], 
-                    id_plataforma=plataforma,
-                    f_publicacion=row['Year']
-                    )
-                juegos.append(juego)
-
-        self.model_class.objects.bulk_create(juegos)
-
-        return Response('Los juegos se cargaron correctamente desde el csv')
+        if result:
+            return Response('Los juegos se cargaron correctamente desde el csv')
+        return Response('Algo salio mal')
 
 
 class RedSocialViewSet(BaseViewSet):
     '''
     Vistas para formar el CRUD del modelo Red Social
     '''
-    model_class = models.Red_social
-    serializer_class = serializers.RedSocialSerializer
+    repository = repositories.RedSocialRepository()
     
-    def search(self, request):
-        filters = Q()
-        if 'nombre' in request.data:
-            filters &= Q(nombre__contains=request.data['nombre'])
-        if 'url' in request.data:
-            filters &= Q(url=request.data['url'])
-        red_social = self.model_class.objects.filter(filters)
-        serialized = self.serializer_class(red_social, many=True)
-        return Response(serialized.data)
-
 
 class UsuarioViewSet(BaseViewSet):
     '''
     Vistas para formar el CRUD del modelo Usuario
     '''
-    model_class = models.Usuario
-    serializer_class = serializers.UsuarioSerializer
-    
-    def search(self, request):
-        filters = Q()
-        if 'nombre' in request.data:
-            filters &= Q(nombre__contains=request.data['nombre'])
-        if 'nick' in request.data:
-            filters &= Q(nick__contains=request.data['nick'])
-        if 'email' in request.data:
-            filters &= Q(email__contains=request.data['email'])
-        usuarios = self.model_class.objects.filter(filters)
-        serialized = self.serializer_class(usuarios, many=True)
-        return Response(serialized.data)
+    repository = repositories.UsuarioRepository()
 
 
 class MensajeViewSet(BaseViewSet):
     '''
     Vistas para formar el CRUD del modelo Mensaje
     '''
-    model_class = models.Mensaje
-    serializer_class = serializers.MensajeSerializer
-    
-    def search(self, request):
-        filters = Q()
-        if 'f_mensaje' in request.data:
-            filters &= Q(f_mensaje=request.data['f_mensaje'])
-        if 'id_usuario' in request.data:
-            if not isinstance(request.data['id_usuario'], int):
-                if isinstance(request.data['id_usuario'], str):
-                    usuario = models.Usuario.objects.get(nick=request.data['id_usuario'])
-                    filters &= Q(id_usuario=usuario.id)
-                if isinstance(request.data['id_usuario'], dict):
-                    usuario = models.Usuario.objects.get(**request.data['id_usuario'])
-                    filters &= Q(id_usuario=usuario.id)
-            else:
-                filters &= Q(id_usuario=request.data['id_usuario'])
-        if 'id_red_social' in request.data:
-            if not isinstance(request.data['id_red_social'], int):
-                if isinstance(request.data['id_red_social'], str):
-                    red_social = models.Red_social.objects.get(nombre=request.data['id_red_social'])
-                    filters &= Q(id_red_social=red_social.id)
-                if isinstance(request.data['id_red_social'], dict):
-                    red_social = models.Red_social.objects.get(**request.data['id_red_social'])
-                    filters &= Q(id_red_social=red_social.id)
-            else:
-                filters &= Q(id_red_social=request.data['id_red_social'])
-        if 'id_juego' in request.data:
-            if not isinstance(request.data['id_juego'], int):
-                if isinstance(request.data['id_juego'], str):
-                    juego = models.Juego.objects.get(titulo=request.data['id_juego'])
-                    filters &= Q(id_juego=juego.id)
-                if isinstance(request.data['id_juego'], dict):
-                    juego = models.Juego.objects.get(**request.data['id_juego'])
-                    filters &= Q(id_juego=juego.id)
-            else:
-                filters &= Q(id_juego=request.data['id_juego'])
-        mensajes = self.model_class.objects.filter(filters)
-        serialized = self.serializer_class(mensajes, many=True)
-        return Response(serialized.data)
-    
-    def create(self, request):
-        '''
-        Sobre escritura del metodo create. Se introduce la posibilidad de enviar red social, juego y usuario como int (FK), str o dict. En el caso de red social, si no existe se creara
-        '''
-        data = request.data
-        
-        #red social
-        if not isinstance(data['id_red_social'], int):
-            if isinstance(data['id_red_social'], str):
-                red_social, created = models.Red_social.objects.get_or_create(nombre=data['id_red_social'])
-                data['id_red_social'] = red_social.id
-            if isinstance(data['id_red_social'], dict):
-                red_social, created = models.Red_social.objects.get_or_create(nombre=data['id_red_social']['nombre'], url=data['id_red_social']['url'])
-                data['id_red_social'] = red_social.id
-                
-        #usuario
-        if not isinstance(data['id_usuario'], int):
-            if isinstance(data['id_usuario'], str):
-                usuario = models.Usuario.objects.get(nick=data['id_usuario'])
-                if usuario == None:
-                    raise Exception('No se encuentra el usuario')
-                data['id_usuario'] = usuario.id
-            if isinstance(data['id_usuario'], dict):
-                usuario = models.Usuario.objects.get(nick=data['id_usuario']['nick'])
-                if usuario == None:
-                    raise Exception('No se encuentra el usuario')
-                data['id_usuario'] = usuario.id
-                
-        #juego
-        if not isinstance(data['id_juego'], int):
-            if isinstance(data['id_juego'], str):
-                juego = models.Juego.objects.get(titulo=data['id_juego'])
-                if juego == None:
-                    raise Exception("El juego no existe")
-                data['id_juego'] = juego.id
-            if isinstance(data['id_juego'], dict):
-                juego = models.Juego.objects.get(titulo=data['id_juego']['titulo'])
-                if juego == None:
-                    raise Exception("El juego no existe")
-                data['id_juego'] = juego.id
-        
-        serializer = self.serializer_class(data=data)
-        
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=STATUS['CREATED'])
-        
-        return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
-    
-    
-    def partial_update(self, request, pk=None):
-        '''
-        Sobre escritura para el metodo partial_update. Se introduce la posibilidad de enviar red social, juego y usuario como int (FK), str o dict. En el caso de red social, si no existe se creara
-        '''
-        queryset = self.model_class.objects.get(pk=pk)
-        data = request.data
-        
-        #red social
-        if 'id_red_social' in data and not isinstance(data['id_red_social'], int):
-            if isinstance(data['id_red_social'], str):
-                red_social, created = models.Red_social.objects.get_or_create(nombre=data['id_red_social'])
-                data['id_red_social'] = red_social.id
-            if isinstance(data['id_red_social'], dict):
-                red_social, created = models.Red_social.objects.get_or_create(nombre=data['id_red_social']['nombre'], url=data['id_red_social']['url'])
-                data['id_red_social'] = red_social.id
-                
-        #usuario
-        if 'id_usuario' in data and not isinstance(data['id_usuario'], int):
-            if isinstance(data['id_usuario'], str):
-                usuario = models.Usuario.objects.get(nick=data['id_usuario'])
-                if usuario == None:
-                    raise Exception('No se encuentra el usuario')
-                data['id_usuario'] = usuario.id
-            if isinstance(data['id_usuario'], dict):
-                usuario = models.Usuario.objects.get(nick=data['id_usuario']['nick'])
-                if usuario == None:
-                    raise Exception('No se encuentra el usuario')
-                data['id_usuario'] = usuario.id
-                
-        #juego
-        if 'id_juego' in data and not isinstance(data['id_juego'], int):
-            if isinstance(data['id_juego'], str):
-                juego = models.Juego.objects.get(titulo=data['id_juego'])
-                if juego == None:
-                    raise Exception("El juego no existe")
-                data['id_juego'] = juego.id
-            if isinstance(data['id_juego'], dict):
-                juego = models.Juego.objects.get(titulo=data['id_juego']['titulo'])
-                if juego == None:
-                    raise Exception("El juego no existe")
-                data['id_juego'] = juego.id
-        
-        serializer = self.serializer_class(
-            queryset, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=STATUS['BAD_REQUEST'])
+    repository = repositories.MensajeRepository()
     
     def seed_metacritic_mensajes_data(self, request):
         '''
         Metodo de poblacion de base de datos para la tabla mensajes, usando de base el fichero csv facilitado con el proyecto
         Este tomara el juego que se envia desde el request y buscara todos los mensajes y reviews enviados por usuarios, los cuales seran introducidos a la base de datos
         '''
-        METACRITIC_DATA = {
-            'name': 'Metacritic',
-            'url': 'metacritic.com'
-        }
-        # self.model_class.objects.all().delete()
-        form = forms.BuscarMensaje(request.POST or None)
-
-        if form.is_valid():
-            id_juego = form.cleaned_data['id_juego']
-            
-        juego = models.Juego.objects.get(pk=id_juego)
-        metacritic_red_social = models.Red_social.objects.filter(
-            Q(nombre=METACRITIC_DATA['name']) | Q(url=METACRITIC_DATA['url'])
-        ).get_or_create(nombre=METACRITIC_DATA['name'], url=METACRITIC_DATA['url'])
-            
-        self.model_class.objects.filter(id_juego=juego.id, id_red_social=metacritic_red_social.id).delete()
+        result = self.repository.seed_metacritic_mensajes_data(request)
         
-        with open(os.path.join(settings.BASE_DIR, 'datos', 'metacritic_game_user_comments.csv'), 'r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            mensajes = []
-            
-            for row in reader:
-                if row['Title'] != juego.titulo:
-                    continue
-                
-                usuario, _ = models.Usuario.objects.filter(
-                    Q(nombre=row['Username']) | Q(nick=row['Username'])
-                ).get_or_create(nombre=row['Username'], nick=row['Username'], email=row['Username'] + '@mail.com')
-                
-                juego, _ = models.Juego.objects.filter(
-                    Q(titulo=row['Title']) | Q(id_plataforma=models.Plataforma.objects.get_or_create(nombre=row['Platform'])[0])
-                ).get_or_create(
-                    titulo=row['Title'], 
-                    id_plataforma=models.Plataforma.objects.get_or_create(nombre=row['Platform'])[0]
-                )
-                    
-                mensaje = models.Mensaje.factory(
-                    texto=row['Comment'],
-                    id_juego=juego,
-                    id_usuario=usuario,
-                    id_red_social=metacritic_red_social
-                )
-                mensajes.append(mensaje)
-                
-        self.model_class.objects.bulk_create(mensajes)
-        
-        return Response('Los mensajes se crearon correctamente en la base de datos')
+        if result:
+            return Response('Los mensajes se crearon correctamente en la base de datos')
+        return Response('Algo salio mal')
     
     def seed_play_store_game_data(self, request):
         '''
@@ -427,50 +123,8 @@ class MensajeViewSet(BaseViewSet):
         Este seleccionara 10 juegos aleatorios de entre todos los disponibles, recogiendo todos los mensajes enviados por los usuarios para todos los 10 juegos seleccionados e introduciendo sus datos a la base de datos.
         Antes de la seleccion y posterior introduccions de datos a la base de datos, se borraran todos los mensajes que hayan sido registrados para la red social de playstore
         '''
-        PLAY_STORE_GAME = {
-            'name': 'play_store_games',
-            'url': 'playstore.com',
-            'platform': 'playstore'
-        }
-        
-        play_store_red_social, _ = models.Red_social.objects.filter(
-            Q(nombre=PLAY_STORE_GAME['name']) | Q(url=PLAY_STORE_GAME['url'])
-        ).get_or_create(nombre=PLAY_STORE_GAME['name'], url=PLAY_STORE_GAME['url'])
-        
-        play_store_platform, _ = models.Plataforma.objects.get_or_create(nombre=PLAY_STORE_GAME['platform'])
-        
-        models.Mensaje.objects.filter(id_red_social=play_store_red_social.id).delete()
-        
-        with open(os.path.join(settings.BASE_DIR, 'datos', 'PlayStoreGameAppInfoReview.json'), 'r') as jsonfile:
-            json_data = json.load(jsonfile)
-            juegos_selected = []
-            
-            for _ in range(10):
-                mensajes = []
-                juego_key, juego_value = random.choice(list(json_data.items()))
-                while juego_key in juegos_selected:
-                    juego_key, juego_value = random.choice(list(json_data.items()))
-                
-                juegos_selected.append(juego_key)
-                
-                for i in range(10):
-                    user_name = juego_value['reviews'][i]['userName']
-                    comment = juego_value['reviews'][i]['content']
-                    
-                    user, _ = models.Usuario.objects.filter(
-                        Q(nick=user_name) | Q(nombre=user_name)
-                    ).get_or_create(nick=user_name, nombre=user_name)
-                    
-                    juego, _ = models.Juego.objects.get_or_create(titulo=juego_value['appInfo']['title'], id_plataforma=play_store_platform)
-                    
-                    mensaje = models.Mensaje.factory(
-                        texto=comment,
-                        id_usuario=user,
-                        id_juego=juego,
-                        id_red_social=play_store_red_social
-                    )
-                    mensajes.append(mensaje)
-                    
-                models.Mensaje.objects.bulk_create(mensajes)
+        result = self.repository.seed_play_store_game_data(request)
 
+        if result:
             return Response('Los mensajes han sido cargados correctamente')
+        return Response('Algo salio mal')

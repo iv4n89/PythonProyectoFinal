@@ -12,6 +12,15 @@ BOT_NAME = "scrappy_project"
 SPIDER_MODULES = ["scrappy_project.spiders"]
 NEWSPIDER_MODULE = "scrappy_project.spiders"
 
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.abspath('.')))
+os.environ['DJANGO_SETTINGS_MODULE'] = 'proyecto_final.settings'
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+import django
+django.setup()
+
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "scrappy_project (+http://www.yourdomain.com)"

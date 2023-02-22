@@ -2,11 +2,19 @@ from django.urls import path, re_path
 from . import views
 
 urlpatterns = [
-    path('juegos/', views.JuegoViewSet.as_view({'get': 'list'})),
-    path('juegos/create', views.JuegoViewSet.as_view({'post': 'create'})),
-    path('juegos/seed', views.JuegoViewSet.as_view({ 'options': 'seed_data_base' })),
-    path('juegos/search', views.JuegoViewSet.as_view({ 'post': 'search' })),
-    re_path(r'^juegos/(?P<pk>[0-9]+)/$', views.JuegoViewSet.as_view({
+    path('plataforma/', views.PlataformaViewSet.as_view({'get': 'list'})),
+    path('plataforma/create', views.PlataformaViewSet.as_view({'post': 'create'})),
+    path('plataforma/search', views.PlataformaViewSet.as_view({ 'post': 'search' })),
+    re_path(r'^plataforma/(?P<pk>[0-9]+)/$', views.PlataformaViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'partial_update',
+        'delete': 'destroy',
+    })),
+    path('juego/', views.JuegoViewSet.as_view({'get': 'list'})),
+    path('juego/create', views.JuegoViewSet.as_view({'post': 'create'})),
+    path('juego/seed', views.JuegoViewSet.as_view({ 'options': 'seed_data_base' })),
+    path('juego/search', views.JuegoViewSet.as_view({ 'post': 'search' })),
+    re_path(r'^juego/(?P<pk>[0-9]+)/$', views.JuegoViewSet.as_view({
         'get': 'retrieve',
         'put': 'partial_update',
         'delete': 'destroy',
