@@ -18,30 +18,37 @@ class SteamGamesSpider(scrapy.Spider):
         print(title)
         
         for i in range(len(comments)):
+            #Plataforma
             plataforma = items.PlataformaItem()
             plataforma['nombre'] = 'PC'
             _, plataforma = repositories.PlataformaRepository().create(plataforma)
+            
+            #Red social
             red_social = items.RedSocialItem()
             red_social['nombre'] = 'Steam'
             red_social['url'] = 'steamcommunity.com'
             _, red_social = repositories.RedSocialRepository().create(red_social)
+            
+            #Juego
             juego = items.JuegoItem()
             juego['titulo'] = title
             juego['id_plataforma'] = plataforma
             _, juego = repositories.JuegoRepository().create(juego)
-            mensaje = items.MensajeItem()
-            usuario = items.UsuarioItem()
             
+            #Usuario
+            usuario = items.UsuarioItem()
+            user = comments[i].css('div.apphub_CardContentAuthorName ::text').extract_first()
+            _, usuario = repositories.UsuarioRepository().create({"nombre": user, "nick": user})
+            
+            #Mensaje
+            mensaje = items.MensajeItem()
             text = comments[i].xpath('//div[@class="apphub_CardTextContent"]').extract()[i]
             text_start_index = re.search(r'<br>', text).end()
             text = text[text_start_index:]
             text_end_index = re.search(r'</div>', text).start()
             text = text[:text_end_index].strip()
-            user = comments[i].css('div.apphub_CardContentAuthorName ::text').extract_first()
             date = comments[i].css('div.date_posted ::text').extract_first()[8:]
             date = date_conversion(date)
-            
-            _, usuario = repositories.UsuarioRepository().create({"nombre": user, "nick": user})
             
             mensaje['texto'] = text
             mensaje['id_usuario'] = usuario
