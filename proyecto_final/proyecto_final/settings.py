@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'crud.apps.CrudConfig',
+    'web_app.apps.WebAppConfig',
     'rest_framework',
 ]
 

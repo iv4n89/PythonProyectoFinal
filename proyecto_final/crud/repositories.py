@@ -13,7 +13,7 @@ class BaseRepository():
     serializer_class = None #Clase serializadora para la actual vista generica
     model_class = None #Clase de modelo para la actual vista generica
 
-    def list(self, data):
+    def list(self, data=None):
         '''
         Selecciona todos los elementos del modelo actual desde la base de datos, y los ofrece al usuario
         '''
@@ -29,7 +29,7 @@ class BaseRepository():
         serializer = self.serializer_class(model)
         return False, serializer.data
 
-    def retrieve(self, data, pk=None):
+    def retrieve(self, data=None, pk=None):
         '''
         Selecciona un unico elemento, por PK, del modelo desde la base de datos
         '''
@@ -245,7 +245,7 @@ class MensajeRepository(BaseRepository):
                 data['id_red_social'] = red_social
                 
         #usuario
-        if not isinstance(data['id_usuario'], int):
+        if not isinstance(data['id_usuario'], int): #pregunta varias instancias ~ para not 
             if isinstance(data['id_usuario'], str):
                 usuario = models.Usuario.objects.get(nick=data['id_usuario'])
                 if usuario == None:

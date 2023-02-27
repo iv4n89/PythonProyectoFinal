@@ -1,0 +1,28 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <div class="container pb-5">
+        <div class="m-5 text-center">
+            <h1> {{ mensajes.0.id_juego.titulo }} </h1>
+            <h3> {{ mensajes.0.id_juego.id_plataforma.nombre }} </h3>
+        </div>
+        <div class="mt-5" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; grid-auto-rows: (minmax(100px, auto);">
+            {% for mensaje in mensajes %}
+                <div class="card border-2 border-dark">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between">
+                            <label>{{ mensaje.id_usuario.nick }}</label>
+                            <label>{{ mensaje.f_mensaje }}</label>
+                        </div>
+                        <div>
+                            <label>{{ mensaje.id_red_social.nombre }}</label>
+                        </div>
+                    </div>
+                    <div class="card-body text-white bg-dark">
+                        <p> {{mensaje.texto}} </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

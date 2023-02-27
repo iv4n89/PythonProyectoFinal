@@ -7,9 +7,10 @@ class PlataformaSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class JuegoSerializer(serializers.ModelSerializer):
+    id_plataforma = PlataformaSerializer()
     class Meta:
         model = models.Juego
-        fields = '__all__'
+        fields = ['titulo', 'id_plataforma', 'f_publicacion']
         
 class RedSocialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,6 +23,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class MensajeSerializer(serializers.ModelSerializer):
+    id_juego = JuegoSerializer()
+    id_red_social = RedSocialSerializer()
+    id_usuario = UsuarioSerializer()
     class Meta:
         model = models.Mensaje
         fields = '__all__'
