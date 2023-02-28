@@ -1,0 +1,26 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <div class="container" style="width: 50%; height: 100vh;">
+        <h1>Media de mensajes por red social</h1>
+        <h2>Entre las fechas {{ start_date }} y {{ end_date }}</h2>
+        {% if list %}
+        <table class="table">
+            <tr class="table-dark">
+                <th>Nombre red social</th>
+                <th>Media mensajes diarios</th>
+            </tr>
+            {% for element in list %}
+                <tr class="table-secondary">
+                    <td>{{ element.0 }}</td>
+                    <td>{{ element.1|floatformat:"0" }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <hr>
+        <img src="data:image/png;base64,{{ image }}" alt="histograma de redes sociales" />
+        {% else %}
+        <h3>No hay elementos</h3>
+        {% endif %}
+    </div>
+{% endblock %}

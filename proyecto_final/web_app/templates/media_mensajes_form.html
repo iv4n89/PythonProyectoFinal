@@ -1,0 +1,27 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <div class="container" style="width: 50%; height: 90vh;">
+        <h1>Obtener la media diaria de mensajes de cada red social, entre dos fechas</h1>
+        <div class="container">
+            <form method="POST" class="form" id="average_form">
+                <div class="mb-3">
+                    <label class="form-label">Fecha inicio</label>
+                    <input class="form-control" name="start_date" type="date" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fecha fin</label>
+                    <input class="form-control" name="end_date" type="date" />
+                </div>
+                <button type="submit" class="btn btn-primary" onclick="mostrar_mensaje_cargando()">Enviar</button>
+            </form>
+            <label hidden id="cargando" class="text-danger">Generando histograma...</label>
+        </div>
+    </div>
+    <script>
+        function mostrar_mensaje_cargando() {
+            label = document.getElementById('cargando');
+            label.hidden = false;
+        }
+    </script>
+{% endblock %}

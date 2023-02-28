@@ -1,0 +1,24 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h1 class="mb-5 text-center">Formulario apariciones texto segun usuarios</h1>
+    <div class="container" style="height: 90vh; width: 50%;">
+        <form method="POST" id="formulario">
+            <div class="mb-3">
+                <label class="form-label">Fecha inicio</label>
+                <input type="date" class="form-control" name="start_date"/>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Fecha fin</label>
+                <input type="date" class="form-control" name="end_date"/>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Texto</label>
+                <input type="text" class="form-control" name="text"/>
+            </div>
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">Enviar</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

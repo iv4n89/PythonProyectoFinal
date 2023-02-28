@@ -111,6 +111,37 @@ class MensajeViewSet(BaseViewSet):
         messages = self.repository.quantity_per_user()
         return Response(messages)
     
+    def users_with_text_in_messages(self, request):
+        data = request.data
+        start_date = data['start_date']
+        end_date = data['end_date']
+        text = data['text']
+        
+        result = self.repository.users_with_text_in_messages(start_date=start_date, end_date=end_date, text_search=text)
+        return Response(result)
+    
+    def average_messages_social_media(self, request):
+        data = request.data
+        start_date = data['start_date']
+        end_date = data['end_date']
+        
+        result = self.repository.average_messages_social_media(start_date=start_date, end_date=end_date)
+        return Response(result)
+    
+    def stats_more_commented_social_media(self, request):
+        data = request.data
+        words = data['words']
+        if ',' in words:
+            words = words.split(',')
+            for i in range(len(words)):
+                words[i-1] = words[i-1].strip()
+            
+        print(words)
+        
+        result = self.repository.stats_more_commented_social_media(words=words)
+        return Response(result)
+        
+    
     def seed_metacritic_mensajes_data(self, request):
         '''
         Metodo de poblacion de base de datos para la tabla mensajes, usando de base el fichero csv facilitado con el proyecto

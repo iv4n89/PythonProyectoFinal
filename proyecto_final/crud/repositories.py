@@ -1,6 +1,7 @@
 from . import models, serializers, forms
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Count, Avg, F
+from django.db.models.functions import TruncDay
 from django.db import connection
 import csv
 import json
@@ -328,6 +329,34 @@ class MensajeRepository(BaseRepository):
         cursor.execute('select crud_usuario.id, crud_usuario.nick, count(crud_mensaje.id_usuario_id) as num_mensaje from crud_usuario left join crud_mensaje on crud_usuario.id = crud_mensaje.id_usuario_id group by crud_usuario.id')
         messages = cursor.fetchall()
         return messages
+    
+    def users_with_text_in_messages(self, start_date: str, end_date: str, text_search: str):
+        query: str = 'select crud_usuario.id, crud_usuario.nick, count(*) as apariciones, group_concat(crud_mensaje.id) as mensaje_ids from crud_usuario inner join crud_mensaje on crud_usuario.id = crud_mensaje.id_usuario_id where crud_mensaje.f_mensaje between "{start_date}" and "{end_date}" and crud_mensaje.texto like "%{text}%" group by crud_usuario.id, crud_usuario.nick order by apariciones desc'.format(start_date=start_date, end_date=end_date, text=text_search)
+        cursor = connection.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        return result
+    
+    def average_messages_social_media(self, start_date: str, end_date: str):
+        queryset: str = 'select r.nombre, AVG(m.count_mensajes) as media_mensajes_diarios from( select id_red_social_id, COUNT(*) as count_mensajes, DATE(f_mensaje) as fecha from crud_mensaje where fecha between "{start_date}" and "{end_date}" group by id_red_social_id, fecha) as m join crud_red_social r on m.id_red_social_id = r.id group by r.id'.format(start_date=start_date, end_date=end_date)
+        cursor = connection.cursor()
+        cursor.execute(queryset)
+        result = cursor.fetchall()
+        return result    
+    
+    def stats_more_commented_social_media(self, words):
+        if not isinstance(words, str):
+            for i in range(len(words)):
+                if i == 1:
+                    words[0] = 'm.texto like "%{word}%"'.format(word=words[0])
+                    continue
+                words[i-1] = 'or m.texto like "%{word}%"'.format(word=words[i-1])
+            words = ' '.join(words)
+        query: str = 'select rs.nombre as red_social, COUNT(*) as cantidad_mensajes from crud_mensaje as m join crud_red_social as rs on m.id_red_social_id = rs.id where {palabras} group by rs.nombre order by cantidad_mensajes desc limit 1'.format(palabras=words)
+        cursor = connection.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        return result
     
     def seed_metacritic_mensajes_data(self, data):
         '''
