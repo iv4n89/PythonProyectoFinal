@@ -106,12 +106,18 @@ class MensajeViewSet(BaseViewSet):
     '''
     repository = repositories.MensajeRepository()
     
+    def quantity_per_user(self, request):
+        
+        messages = self.repository.quantity_per_user()
+        return Response(messages)
+    
     def seed_metacritic_mensajes_data(self, request):
         '''
         Metodo de poblacion de base de datos para la tabla mensajes, usando de base el fichero csv facilitado con el proyecto
         Este tomara el juego que se envia desde el request y buscara todos los mensajes y reviews enviados por usuarios, los cuales seran introducidos a la base de datos
         '''
-        result = self.repository.seed_metacritic_mensajes_data(request)
+        data = request.data
+        result = self.repository.seed_metacritic_mensajes_data(data=data)
         
         if result:
             return Response('Los mensajes se crearon correctamente en la base de datos')

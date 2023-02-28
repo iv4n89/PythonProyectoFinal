@@ -40,9 +40,14 @@ def mensajes_juego(request, id_juego):
         "id_juego": id_juego
     }
     mensajes = repositories.MensajeRepository().search(data=data)
+    if len(mensajes) < 1:
+        repositories.MensajeRepository().seed_metacritic_mensajes_data(data=data)
+        mensajes = repositories.MensajeRepository().search(data=data)
+        
     template = loader.get_template('mensajes_juego.html')
     context = {
         'mensajes' : mensajes,
+        'num_mensajes': len(mensajes),
     }
     
     return HttpResponse(template.render(context, request))

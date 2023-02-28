@@ -1,6 +1,7 @@
 from . import models, serializers, forms
 from django.conf import settings
 from django.db.models import Q
+from django.db import connection
 import csv
 import json
 import os
@@ -322,7 +323,13 @@ class MensajeRepository(BaseRepository):
             return False, serializer.data
         return True, serializer.errors
     
-    def seed_metacritic_mensajes_data(self, request):
+    def quantity_per_user(self):
+        cursor = connection.cursor()
+        cursor.execute('select crud_usuario.id, crud_usuario.nick, count(crud_mensaje.id_usuario_id) as num_mensaje from crud_usuario left join crud_mensaje on crud_usuario.id = crud_mensaje.id_usuario_id group by crud_usuario.id')
+        messages = cursor.fetchall()
+        return messages
+    
+    def seed_metacritic_mensajes_data(self, data):
         '''
         Metodo de poblacion de base de datos para la tabla mensajes, usando de base el fichero csv facilitado con el proyecto
         Este tomara el juego que se envia desde el request y buscara todos los mensajes y reviews enviados por usuarios, los cuales seran introducidos a la base de datos
@@ -331,11 +338,8 @@ class MensajeRepository(BaseRepository):
             'name': 'Metacritic',
             'url': 'metacritic.com'
         }
-        # self.model_class.objects.all().delete()
-        form = forms.BuscarMensaje(request.POST or None)
 
-        if form.is_valid():
-            id_juego = form.cleaned_data['id_juego']
+        id_juego = data['id_juego']
             
         juego = models.Juego.objects.get(pk=id_juego)
         metacritic_red_social, created = models.Red_social.objects.filter(

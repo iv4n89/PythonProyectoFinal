@@ -7,9 +7,20 @@
     <div style="display: flex; justify-content: center ;padding-top: 30px">
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; grid-auto-rows: (minmax(100px, auto);">
             {% for juego in juegos %}
-                <div class="card card-hover d-flex flex-column justify-content-between {{ borders.2}}" style="width: 350px; height: 250px; cursor: pointer;">
-                    <div class="card-header" style="min-height: 150px">
+                <div 
+                    class="card card-hover d-flex flex-column justify-content-between {{ borders.2}}" 
+                    style="width: 350px; height: 250px; cursor: pointer;"
+                    onclick="go_to({{ juego.id }})"
+                >
+                    <div class="card-header d-flex flex-column justify-content-between" style="min-height: 150px">
                         <h2 class="text-center pt-2 card-title">{{juego.titulo}}</h2>
+                        <label 
+                            class="text-danger" 
+                            hidden 
+                            id="cargando-{{juego.id}}"
+                        > 
+                            Cargando mensajes... 
+                        </label>
                     </div>
                     <div class="card-body container">
                         <p>Plataforma: <b>{{juego.id_plataforma.nombre}}</b></p>
@@ -19,4 +30,10 @@
             {% endfor %}
         </div>
     </div>
+    <script>
+        function go_to(id) {
+            document.getElementById(`cargando-${ id }`).hidden = false;
+            location.href = `/mensajes/${ id }`;
+        }
+    </script>
 {% endblock %}

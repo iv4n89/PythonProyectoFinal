@@ -10,7 +10,7 @@ class JuegoSerializer(serializers.ModelSerializer):
     id_plataforma = PlataformaSerializer()
     class Meta:
         model = models.Juego
-        fields = ['titulo', 'id_plataforma', 'f_publicacion']
+        fields = ['titulo', 'id_plataforma', 'f_publicacion', 'id']
         
 class RedSocialSerializer(serializers.ModelSerializer):
     class Meta:
