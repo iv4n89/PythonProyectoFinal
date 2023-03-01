@@ -396,9 +396,12 @@ class MensajeRepository(BaseRepository):
                 if row['Title'] != juego.titulo:
                     continue
                 
-                usuario, _ = models.Usuario.objects.filter(
+                if models.Usuario.objects.filter(
                     Q(nombre=row['Username']) | Q(nick=row['Username'])
-                ).get_or_create(nombre=row['Username'], nick=row['Username'], email=row['Username'] + '@mail.com')
+                ).exists():
+                    usuario = models.Usuario.objects.get(Q(nombre=row['Username']) | Q(nick=row['Username']))
+                else:
+                    usuario, _ = models.Usuario.objects.get_or_create(nombre=row['Username'], nick=row['Username'], email=row['Username'] + '@mail.com')
                 
                 juego, _ = models.Juego.objects.filter(
                     Q(titulo=row['Title']) | Q(id_plataforma=models.Plataforma.objects.get_or_create(nombre=row['Platform'])[0])
