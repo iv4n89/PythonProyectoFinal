@@ -209,15 +209,18 @@ class MensajeRepository(BaseRepository):
             else:
                 filters &= Q(id_usuario=data['id_usuario'])
         if 'id_red_social' in data:
-            if not isinstance(data['id_red_social'], int):
-                if isinstance(data['id_red_social'], str):
-                    red_social = models.Red_social.objects.get(nombre=data['id_red_social'])
-                    filters &= Q(id_red_social=red_social.id)
-                if isinstance(data['id_red_social'], dict):
-                    red_social = models.Red_social.objects.get(**data['id_red_social'])
-                    filters &= Q(id_red_social=red_social.id)
-            else:
-                filters &= Q(id_red_social=data['id_red_social'])
+            try:
+                if not isinstance(data['id_red_social'], int):
+                    if isinstance(data['id_red_social'], str):
+                        red_social = models.Red_social.objects.get(nombre=data['id_red_social'])
+                        filters &= Q(id_red_social=red_social.id)
+                    if isinstance(data['id_red_social'], dict):
+                        red_social = models.Red_social.objects.get(**data['id_red_social'])
+                        filters &= Q(id_red_social=red_social.id)
+                else:
+                    filters &= Q(id_red_social=data['id_red_social'])
+            except models.Red_social.DoesNotExist:
+                return None
         if 'id_juego' in data:
             if not isinstance(data['id_juego'], int):
                 if isinstance(data['id_juego'], str):
@@ -228,7 +231,7 @@ class MensajeRepository(BaseRepository):
                     filters &= Q(id_juego=juego.id)
             else:
                 filters &= Q(id_juego=data['id_juego'])
-        mensajes = self.model_class.objects.filter(filters)
+        mensajes = self.model_class.objects.filter(filters).order_by('f_mensaje')
         serialized = self.serializer_class(mensajes, many=True)
         return serialized.data
     
@@ -447,7 +450,7 @@ class MensajeRepository(BaseRepository):
                 juegos_selected.append(juego_key)
                 
                 for i in range(10):
-                    user_name = juego_value['reviews'][i]['userName']
+                    user_name = juego_value['reviews'][i]['userName'] or "Anonimo"
                     comment = juego_value['reviews'][i]['content']
                     
                     user, _ = models.Usuario.objects.filter(

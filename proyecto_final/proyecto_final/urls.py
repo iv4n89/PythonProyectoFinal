@@ -20,5 +20,6 @@ from django.views.generic.base import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('crud.urls')),
-    path('', include('web_app.urls'))
+    path('', include('web_app.urls')),
+    path('', RedirectView.as_view(pattern_name='recargar-db')),
 ]

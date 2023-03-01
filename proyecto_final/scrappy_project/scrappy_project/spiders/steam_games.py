@@ -21,7 +21,7 @@ class SteamGamesSpider(scrapy.Spider):
             #Plataforma
             plataforma = items.PlataformaItem()
             plataforma['nombre'] = 'PC'
-            _, plataforma = repositories.PlataformaRepository().create(plataforma)
+            plataforma, _ = plataforma.django_model.objects.get_or_create(nombre='PC')
             
             #Red social
             red_social = items.RedSocialItem()

@@ -88,8 +88,18 @@
                 <button 
                     type="button" 
                     class="btn btn-primary shadow rounded"
+                    id="spyderButton"
+                    onclick="run_spyder()"
                 >
                     Lanzar spider
+                </button>
+                <button 
+                    type="button" 
+                    class="btn btn-danger shadow rounded"
+                    id="spyderButtonHidden"
+                    hidden
+                >
+                    Lanzando spyder contra Steam...
                 </button>
             </div>
         </div>
@@ -128,7 +138,25 @@
                 button.classList.add('btn-success');
                 button.hidden = false;
                 document.getElementById('playGamesBtnHidden').hidden = true;
+            });
+        }
+        function run_spyder() {
+            document.getElementById('spyderButton').hidden = true;
+            document.getElementById('spyderButtonHidden').hidden = false;
+
+            fetch('/lanzar-spider', {
+                method: "GET"
             })
+            .then(response => response.json)
+            .then(data => {
+                if (data) {
+                    const button = document.getElementById('spyderButton');
+                    button.innerHTML = "Spyder lanzado con exito";
+                    button.classList.add('btn-success');
+                    button.hidden = false;
+                    document.getElementById('spyderButtonHidden').hidden = true;
+                }
+            });
         }
     </script>
 {% endblock %}

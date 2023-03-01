@@ -1,7 +1,9 @@
-Django
-djangorestframework
-markdown
-django-filter
-scrapy
-scrapy-djangoitem
-matplotlib
+Django==4.1.7
+django-filter==22.1
+djangorestframework==3.14.0
+Markdown==3.4.1
+matplotlib==3.7.0
+numpy==1.24.2
+Scrapy==2.8.0
+scrapy-djangoitem==1.1.1
+scrapydo==0.2.2

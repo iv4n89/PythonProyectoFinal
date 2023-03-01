@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
 import numpy as np
+import scrapydo
+from scrappy_project.scrappy_project.spiders.steam_games import SteamGamesSpider
 
 # Create your views here.
 
@@ -158,3 +160,18 @@ def recargar_db(request):
     
     return HttpResponse(template.render({}, request))
 
+def lanzar_spyder(request):
+    scrapydo.setup()
+    scrapydo.run_spider(SteamGamesSpider)
+    return HttpResponse('Spider lanzado')
+
+def scrapping_vista(request):
+    search_data = {
+        "id_red_social": "Steam"
+    }
+    data = repositories.MensajeRepository().search(search_data)
+    template = loader.get_template('scrapy_vista.html')
+    context = {
+        "lista": data
+    }
+    return HttpResponse(template.render(context, request))

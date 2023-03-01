@@ -1,0 +1,32 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <div class="container" style="padding-bottom: 5rem;">
+        <h1 class="text-center">Mensajes obtenido por Scrapy</h1>
+        <h3 class="text-center">Del juego Roboquest en <a href="https://steamcommunity.com/app/692890/reviews/">Steam</a></h3>
+        {% if lista %}
+            <div class="mt-5 container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; grid-auto-rows: (minmax(100px, auto);">
+                {% for mensaje in lista %}
+                    <div class="card border-2 border-dark">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between">
+                                <label>{{ mensaje.id_usuario.nick }}</label>
+                                <label>{{ mensaje.f_mensaje }}</label>
+                            </div>
+                            <div>
+                                <label>{{ mensaje.id_red_social.nombre }}</label>
+                            </div>
+                        </div>
+                        <div class="card-body text-white bg-dark">
+                            <p> {{mensaje.texto}} </p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+        <div style="height: 100%;" class="text-center">
+            <h3 style="padding: 100px 0; color: red;">No hay datos</h3>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

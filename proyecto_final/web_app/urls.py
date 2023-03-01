@@ -9,4 +9,6 @@ urlpatterns = [
     path('mensajes-media', views.media_mensajes_red_social, name='media_social_media'),
     path('mas-comentado', views.mas_comentado_en, name='mas-comentado'),
     path('recargar-db', views.recargar_db, name='recargar-db'),
+    path('scrapy', views.scrapping_vista, name='scrapy'),
+    path('lanzar-spider', views.lanzar_spyder, name='lanzar-spider'),
 ]
