@@ -7,6 +7,7 @@ services:
     volumes:
       - .:/usr/src/app/
       - ./db/db.sqlite:/opt/app/db/db.sqlite
+      - ./datos:/opt/app/datos
     ports:
       - 8000:8000
     
