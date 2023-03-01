@@ -132,3 +132,29 @@ def media_mensajes_red_social(request):
     else:
         template = loader.get_template('media_mensajes_form.html')
         return HttpResponse(template.render({}, request))
+    
+@csrf_exempt
+def mas_comentado_en(request):
+    if request.method == "POST":
+        data = request.POST
+        words = data.get('words')
+        
+        data = repositories.MensajeRepository().stats_more_commented_social_media(words=words)
+        
+        template = loader.get_template('mas_comentado_result.html')
+        context = {
+            "words": words,
+            "list": data
+        }
+        
+        return HttpResponse(template.render(context, request))
+    else:
+        template = loader.get_template('mas_comentado_form.html')
+        return HttpResponse(template.render({}, request))
+    
+def recargar_db(request):
+    
+    template = loader.get_template('recarga_db.html')
+    
+    return HttpResponse(template.render({}, request))
+

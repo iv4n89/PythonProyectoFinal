@@ -19,10 +19,24 @@
     </head>
 
     <body>
+        <header>
+            <menu style="background-color: black; margin: 0; display: flex; justify-content: center; gap: 10px; padding: 100px 0 100px 0;">
+                <a class="btn btn-secondary" href="/recargar-db">Recargar base de datos</a>
+                <a class="btn btn-secondary" href="/lista-juegos">Lista de juegos</a>
+                <a class="btn btn-secondary" href="/mensajes-por-usuario">Mensajes por usuario</a>
+                <a class="btn btn-secondary" href="/mensajes-apariciones">Formulario apariciones en mensajes</a>
+                <a class="btn btn-secondary" href="/mensajes-media">Formulario media mensajes</a>
+                <a class="btn btn-secondary" href="/mas-comentado">Se habla mas en...</a>
+                <a class="btn btn-secondary" href="">Scraping a Steam</a>
+            </menu>
+        </header>
         <div style="width: 100%; background-color: black;">
             <div class="container" style="background-color: white; padding-top: 100px">
                 {% block content %} {% endblock %}
             </div>
         </div>
+        <script>
+            const go_to = (url) => location.href = url
+        </script>
     </body>
 </html>

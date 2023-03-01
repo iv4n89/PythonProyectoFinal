@@ -137,7 +137,6 @@ class JuegoRepository(BaseRepository):
         Metodo para poblar la base de datos desde fichero csv provisto con el proyecto.
         Esto elimina todos los registros de la tabla Juegos antes de realizar el poblado de nuevo para la tabla
         '''
-        self.model_class.objects.all().delete()
 
         with open(os.path.join(settings.BASE_DIR, 'datos', 'metacritic_game_info.csv'), 'r') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -148,7 +147,8 @@ class JuegoRepository(BaseRepository):
                     continue
                 
                 plataforma, created = models.Plataforma.objects.get_or_create(nombre=row['Platform'])
-                
+                if models.Juego.objects.filter(titulo=row['Title'], id_plataforma=plataforma).exists():
+                    continue
                 juego = models.Juego(
                     titulo=row['Title'], 
                     id_plataforma=plataforma,
@@ -326,32 +326,40 @@ class MensajeRepository(BaseRepository):
     
     def quantity_per_user(self):
         cursor = connection.cursor()
-        cursor.execute('select crud_usuario.id, crud_usuario.nick, count(crud_mensaje.id_usuario_id) as num_mensaje from crud_usuario left join crud_mensaje on crud_usuario.id = crud_mensaje.id_usuario_id group by crud_usuario.id')
+        cursor.execute('SELECT crud_usuario.id, crud_usuario.nick, COUNT(crud_mensaje.id_usuario_id) AS num_mensaje FROM crud_usuario LEFT JOIN crud_mensaje ON crud_usuario.id = crud_mensaje.id_usuario_id GROUP BY crud_usuario.id ORDER BY num_mensaje DESC')
         messages = cursor.fetchall()
         return messages
     
     def users_with_text_in_messages(self, start_date: str, end_date: str, text_search: str):
-        query: str = 'select crud_usuario.id, crud_usuario.nick, count(*) as apariciones, group_concat(crud_mensaje.id) as mensaje_ids from crud_usuario inner join crud_mensaje on crud_usuario.id = crud_mensaje.id_usuario_id where crud_mensaje.f_mensaje between "{start_date}" and "{end_date}" and crud_mensaje.texto like "%{text}%" group by crud_usuario.id, crud_usuario.nick order by apariciones desc'.format(start_date=start_date, end_date=end_date, text=text_search)
+        query: str = 'SELECT crud_usuario.id, crud_usuario.nick, COUNT(*) AS apariciones, GROUP_CONCAT(crud_mensaje.id) AS mensaje_ids FROM crud_usuario INNER JOIN crud_mensaje ON crud_usuario.id = crud_mensaje.id_usuario_id WHERE crud_mensaje.f_mensaje BETWEEN "{start_date}" AND "{end_date}" AND crud_mensaje.texto LIKE "%{text}%" GROUP BY crud_usuario.id, crud_usuario.nick ORDER BY apariciones DESC'.format(start_date=start_date, end_date=end_date, text=text_search)
         cursor = connection.cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         return result
     
     def average_messages_social_media(self, start_date: str, end_date: str):
-        queryset: str = 'select r.nombre, AVG(m.count_mensajes) as media_mensajes_diarios from( select id_red_social_id, COUNT(*) as count_mensajes, DATE(f_mensaje) as fecha from crud_mensaje where fecha between "{start_date}" and "{end_date}" group by id_red_social_id, fecha) as m join crud_red_social r on m.id_red_social_id = r.id group by r.id'.format(start_date=start_date, end_date=end_date)
+        queryset: str = 'SELECT r.nombre, AVG(m.count_mensajes) AS media_mensajes_diarios FROM( SELECT id_red_social_id, COUNT(*) AS count_mensajes, DATE(f_mensaje) AS fecha FROM crud_mensaje WHERE fecha BETWEEN "{start_date}" AND "{end_date}" GROUP BY id_red_social_id, fecha) AS m JOIN crud_red_social r ON m.id_red_social_id = r.id GROUP BY r.id'.format(start_date=start_date, end_date=end_date)
         cursor = connection.cursor()
         cursor.execute(queryset)
         result = cursor.fetchall()
         return result    
     
     def stats_more_commented_social_media(self, words):
+        if ',' in words:
+            words = words.split(',')
+            for i in range(len(words)):
+                words[i-1] = words[i-1].strip()
+        
         if not isinstance(words, str):
             for i in range(len(words)):
+                if words[i-1].strip() == '': continue
                 if i == 1:
                     words[0] = 'm.texto like "%{word}%"'.format(word=words[0])
                     continue
                 words[i-1] = 'or m.texto like "%{word}%"'.format(word=words[i-1])
             words = ' '.join(words)
+        else:
+            words = 'm.texto like "%{word}%"'.format(word=words)
         query: str = 'select rs.nombre as red_social, COUNT(*) as cantidad_mensajes from crud_mensaje as m join crud_red_social as rs on m.id_red_social_id = rs.id where {palabras} group by rs.nombre order by cantidad_mensajes desc limit 1'.format(palabras=words)
         cursor = connection.cursor()
         cursor.execute(query)
@@ -426,8 +434,6 @@ class MensajeRepository(BaseRepository):
         
         play_store_platform, _ = models.Plataforma.objects.get_or_create(nombre=PLAY_STORE_GAME['platform'])
         
-        models.Mensaje.objects.filter(id_red_social=play_store_red_social.id).delete()
-        
         with open(os.path.join(settings.BASE_DIR, 'datos', 'PlayStoreGameAppInfoReview.json'), 'r') as jsonfile:
             json_data = json.load(jsonfile)
             juegos_selected = []
@@ -449,6 +455,9 @@ class MensajeRepository(BaseRepository):
                     ).get_or_create(nick=user_name, nombre=user_name)
                     
                     juego, _ = models.Juego.objects.get_or_create(titulo=juego_value['appInfo']['title'], id_plataforma=play_store_platform)
+                    
+                    if models.Mensaje.objects.filter(id_usuario=user, id_juego=juego, id_red_social=play_store_red_social).exists():
+                        continue
                     
                     mensaje = models.Mensaje.factory(
                         texto=comment,

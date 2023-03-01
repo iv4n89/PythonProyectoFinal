@@ -1,0 +1,134 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <div 
+        class="container d-flex justify-content-center" 
+        style="height: 100vh;"
+    >
+        <div>
+            <div 
+                class="mb-3 rounded shadow d-flex flex-column justify-content-between" 
+                style="padding: 10px; width: 50vw; min-height: 50px;"
+            >
+                <label 
+                    style="padding-bottom: 10px;"
+                > 
+                    Volver a cargar los juegos en la base de datos: 
+                </label>
+                <button 
+                    type="button" 
+                    class="btn btn-primary shadow rounded"
+                    id="juegos_db_btn"
+                    onclick="seed_games()"
+                >
+                    Recargar juegos db
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-danger shadow rounded"
+                    id="juegos_db_btn_hidden"
+                    hidden
+                >
+                    Cargando datos a la db...
+                </buntton>
+            </div>
+            <div 
+                class="mb-3 rounded shadow d-flex flex-column justify-content-between" 
+                style="padding: 10px; width: 50vw; min-height: 50px;"
+            >
+                <label 
+                    style="padding-bottom: 10px;"
+                > 
+                    Cargar los mensajes de metacritic para un juego determinado. Esto te llevara a Lista de juegos. Debes seleccionar un juego para cargar sus mensajes de Metacritic
+                </label>
+                <button 
+                    type="button" 
+                    class="btn btn-primary shadow rounded"
+                    onclick="go_to('/lista-juegos')"
+                >
+                    Recargar mensajes metacritic juego
+                </button>
+            </div>
+            <div 
+                class="mb-3 rounded shadow d-flex flex-column justify-content-between" 
+                style="padding: 10px; width: 50vw; min-height: 50px;"
+            >
+                <label 
+                    style="padding-bottom: 10px;"
+                >
+                    Volver a cargar mensajes de Google Play. Esto seleccionara 10 juegos al azar de entre los disponibles y los cargara en la base de datos.<br>
+                    Los encontraras al final de la Lista de juegos. Si pulsas en alguno de ellos podras ver los mensajes cargados para cada uno de ellos.
+                </label>
+                <button 
+                    type="button" 
+                    class="btn btn-primary shadow rounded"
+                    id="playGamesBtn"
+                    onclick="seed_play_games()"
+                >
+                    Recargar mensajes google play store
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-danger shadow rounded"
+                    id="playGamesBtnHidden"
+                    hidden
+                >
+                    Cargando mensajes de Play Store...
+                </button>
+            </div>
+            <div    
+                class="mb-3 rounded shadow d-flex flex-column justify-content-between" 
+                style="padding: 10px; width: 50vw; min-height: 50px;"
+            >
+                <label 
+                    style="padding-bottom: 10px;"
+                >
+                    Lanzar el spider para traer los ultimos comentarios sobre el juego Roboquest de Steam
+                </label>
+                <button 
+                    type="button" 
+                    class="btn btn-primary shadow rounded"
+                >
+                    Lanzar spider
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function go_to(url) {
+            location.href = url
+        }
+        function seed_games() {
+            document.getElementById('juegos_db_btn').hidden = true;
+            document.getElementById('juegos_db_btn_hidden').hidden = false;
+
+            fetch('/api/juego/seed', {
+                method: 'OPTIONS',
+            })
+            .then(response => response.json())
+            .then(data => {
+                const button = document.getElementById('juegos_db_btn');
+                button.innerHTML = "Juegos cargados";
+                button.classList.add('btn-success');
+                button.hidden = false;
+                document.getElementById('juegos_db_btn_hidden').hidden = true;
+            });
+        }
+        function seed_play_games() {
+            document.getElementById('playGamesBtn').hidden = true;
+            document.getElementById('playGamesBtnHidden').hidden = false;
+
+            fetch('/api/mensaje/seed/playstoregames', {
+                method: "OPTIONS"
+            })
+            .then(response => response.json)
+            .then(data => {
+                const button = document.getElementById('playGamesBtn');
+                button.innerHTML = "Mensajes cargados";
+                button.classList.add('btn-success');
+                button.hidden = false;
+                document.getElementById('playGamesBtnHidden').hidden = true;
+            })
+        }
+    </script>
+{% endblock %}

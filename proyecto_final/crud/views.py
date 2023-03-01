@@ -131,13 +131,6 @@ class MensajeViewSet(BaseViewSet):
     def stats_more_commented_social_media(self, request):
         data = request.data
         words = data['words']
-        if ',' in words:
-            words = words.split(',')
-            for i in range(len(words)):
-                words[i-1] = words[i-1].strip()
-            
-        print(words)
-        
         result = self.repository.stats_more_commented_social_media(words=words)
         return Response(result)
         

@@ -1,0 +1,19 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <div class="container text-center" style="height: 100vh;">
+        <h1>Resultados de mas hablados en...</h1>
+        <h3>De las palabras: {{ words }}</h3>
+        {% if list %}
+            <div>
+                <label><b>Red social</b></label>
+                <label>{{ list.0.0 }}</label>
+            </div>
+            <div>
+                <label><b>Numero de apariciones</b></label>
+                <label>{{ list.0.1 }}</label>
+        {% else %}
+            <label>Sin datos</label>
+        {% endif %}
+    </div>
+{% endblock %}
